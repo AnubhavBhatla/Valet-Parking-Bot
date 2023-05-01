@@ -1,0 +1,5 @@
+Project Contribution
+
+ - Anubhav: Supervisor Implementation, Debugging, Documentation
+ - Mudit: State Machine Implementation, Bot Assembly, Debugging, Driver debugging
+ - Shashank: Supervisor Implementation, Debugging, Driver writing

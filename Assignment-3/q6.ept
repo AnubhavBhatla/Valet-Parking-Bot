@@ -1,0 +1,44 @@
+node controller(flame: bool; sec: bool) returns (gas: bool; spark: bool)
+var last timegas: int = 0;
+    last timespark: int = 0;
+    last timedissipate: int = 0;
+let
+  automaton
+     state Flameoff
+     	do timegas = 0 -> if (((pre(timegas)) <= 15)  and sec) then pre(timegas)+1 
+     	   else pre(timegas);
+     	gas = true;
+     	spark = false;
+     until (timegas >= 14) then Spark
+     unless flame then Wait
+     
+     state Spark
+     	do timespark = 0 -> if ((pre(timespark) <= 45)  and sec) then pre(timespark)+1 
+     	   else pre(timespark);
+        spark = if (timespark <= 44) then true else false;
+        gas = true;
+     until (timespark >= 44) then Dissipate
+     unless flame then Wait
+     
+     state Dissipate
+     	do timedissipate = 0 -> if (((pre(timedissipate)) <= 120)  and sec) then pre(timedissipate)+1 else pre(timedissipate);
+     	gas = false;
+     	spark = false;
+     until (timedissipate >= 119) then Flameoff
+     
+     state Wait
+     	do gas = false;
+     	spark = false;
+     unless not flame then Flameoff
+  end
+tel
+ 
+node display(flame: bool) returns (gas: bool; spark: bool)
+let
+	(gas,  spark) = controller(flame, true);
+tel
+
+(*
+I am using three timers: timegas is the timer for turning the gas on for 15s in the Flameoff state, timespark is the timer for continuosly trying spark till we get flame or another 45s have passed, and timedissipate is the timer for keeping gas off for 120s.
+The state Flameoff is for the case when flame is off and we haven't started giving gas. So, in this state, we give gas till timegas reaches 15s and then move to state Spark. If somehow we get flame before 15s have elapsed, we bypass the Spark state and go directly to the Wait state. If the timergas is up, we move to the Spark state, wherein we keep the gas on and keep giving spark every cycle until we get flame. If we get flame before timespark reaches 45s, i.e. spark was successful, we move to the Wait state. If flame was not true when the timespark reached 45s (gas has been on for 60s), we move to the Dissipate state. In this state, we turn off both gas and spark and wait for timedissipate to reach 120s, after which we can restart from the Flameoff state. Finally, we have the Wait state in which both gas and spark are false and the flame is on. As soon as the flame turns off due to whatever reason, we go to the Flameoff state.
+*)

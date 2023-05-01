@@ -1,0 +1,8 @@
+node smonitor(a,b,c: bool) returns (ok: bool)
+var last_a, last_b: bool;
+let
+(* assumption: if both 'a' and 'b' are simultaneously true, then preference is given to 'b' *)
+   last_a = (if b then false else a) -> if b then false else (if a then true else pre(last_a));
+   last_b = b -> if b then true else (if a then false else pre(last_b));
+   ok = (not last_a or c) -> if last_a then (if (pre last_a) then (pre ok and c) else c) else (if b then false else true);
+tel

@@ -1,0 +1,5 @@
+Project Contribution
+
+ - Anubhav: Implementation of the state machines, State Design, Debugging, Documentation
+ - Mudit: Algorithm for the PID controller, State design, Documentation, Debugging
+ - Shashank: Implementation of PID control, State design, Video recording, Documentation

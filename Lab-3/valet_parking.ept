@@ -1,0 +1,178 @@
+const kp: int = 2
+const ki: int = 0
+const kd: int = 0
+const threshold_ir: int  = 500
+const threshold_pid: int = 400
+const ir_max: int = 1023
+
+node valet_parking(ll_1, lc_1, cc_1, rc_1, rr_1, irl, irc, irr: int) returns(dir, sL, sR: int)
+var last error: int = 0;
+    last error_sum: int = 0;
+    last error_diff: int = 0; 
+    last control: int = 0;
+    last base: int = 40;
+    last irl_b: bool = false;
+    last irc_b: bool = false;
+    last irr_b: bool = false;
+    last ll: int = 0;
+    last lc: int = 0;
+    last cc: int = 0;
+    last rc: int = 0;
+    last rr: int = 0;
+    last going_straight: bool = false;
+    
+let
+
+ll = 1023 - ll_1;
+lc = 1023 - lc_1;
+cc = 1023 - cc_1;
+rc = 1023 - rc_1;
+rr = 1023 - rr_1;
+
+automaton
+    (* The initial start state *)
+    state Start
+    do
+    	dir = 0;
+        sL = 0;
+        sR = 0;
+        going_straight = false;
+    unless (irc < threshold_ir) then Obstacle_follow
+    | (cc > 500) then Line_follow
+
+    (*Obstacle Follow algorithm*)
+    state Obstacle_follow
+    do
+        automaton
+            state Dummy
+            do
+                dir = 0;
+                sL = 0;
+                sR = 0;
+            unless (irl >= irr) then Left_turn
+            | (irl < irr) then Right_turn
+             
+            state Forward 
+            do
+                dir = 1; -- forward
+                sL = base; 
+                sR = base; 
+                irl_b = irl < threshold_ir;
+                irc_b = irc < threshold_ir;
+                irr_b = irr < threshold_ir;
+            unless (irl > threshold_ir) and (last irl_b) then Left_turn
+            | (irr > threshold_ir) and (last irr_b) then Right_turn
+
+            state Left_turn 
+            do
+                dir = 2; -- left turn
+                sL = 0;
+                sR = 100;
+            unless (irl < 100) or (irr < 100) then Forward
+
+            state Right_turn 
+            do
+                dir = 3; -- right turn
+                sL = 100; 
+                sR = 0; 
+            unless (irl < 100) or (irr < 100) then Forward
+        end
+    until (not irc_b) and (not irl_b) and (not irr_b) and (ll > 500) and (lc > 500) and (cc > 500) and (rc > 500) and (rr > 500) then Start
+    unless (cc > threshold_pid) then Line_follow  
+    
+    (*Line follower state machine*)
+    state Line_follow
+    do  
+        (*PID Logic*)
+        error = (50*ll + 40*lc + 30*cc + 20*rc + 10*rr + 30)/(ll + lc + cc + rc + rr + 1) - 30;
+        base = last base;
+        error_sum = error -> pre error_sum + error;
+        error_diff = 0 -> error - pre error;
+        control = kp*error + ki*error_sum + kd*error_diff;
+
+        automaton
+            (*The bot is perfectly aligned on the line*)
+            state Straight
+            do  
+                going_straight = true;
+                dir = 1;
+                sL = if (base + control > 100) then 100 else (if(base + control > 0) then base + control else 0);
+                sR = if (base + control > 100) then 100 else (if(base + control > 0) then base + control else 0);
+            unless (rr < threshold_pid and rc < threshold_pid and ((ll > threshold_pid and lc < threshold_pid and cc < threshold_pid) or (ll > threshold_pid and lc > threshold_pid and cc < threshold_pid) or (ll < threshold_pid and lc > threshold_pid and cc > threshold_pid))) then Right_offset
+                | (ll < threshold_pid and lc < threshold_pid and ((rr > threshold_pid and rc < threshold_pid and cc < threshold_pid) or (rr > threshold_pid and rc > threshold_pid and cc < threshold_pid) or (rr < threshold_pid and rc > threshold_pid and cc > threshold_pid))) then Left_offset
+                (* | (ll < threshold_pid and lc < threshold_pid and cc < threshold_pid and rc < threshold_pid and rr < threshold_pid) then Start *)
+                | (rr < threshold_pid and cc > threshold_pid and lc > threshold_pid and ll > threshold_pid) or (irr < 100) then Left_turn
+                | (ll < threshold_pid and cc > threshold_pid and rc > threshold_pid and rr > threshold_pid) or (irl < 100) then Right_turn
+
+            (*The bot is slightly to the right of the white line*)
+            state Right_offset
+            do 
+                going_straight = false;
+                dir = 1;
+                sL = if (base - control < 0) then 0 else (if (base - control < 100) then (base - control) else 100);
+                sR = if (base + control > 100) then 100 else (if (base + control > 0) then (base + control) else 0);
+            unless (ll < threshold_pid and lc < threshold_pid and ((rr > threshold_pid and rc < threshold_pid and cc < threshold_pid) or (rr > threshold_pid and rc > threshold_pid and cc < threshold_pid) or (rr < threshold_pid and rc > threshold_pid and cc > threshold_pid))) then Left_offset
+                | (cc > threshold_pid and ((ll > threshold_pid and lc > threshold_pid and rc > threshold_pid and rr > threshold_pid) or (ll > threshold_pid and lc < threshold_pid and rc < threshold_pid and rr > threshold_pid) or (ll < threshold_pid and lc < threshold_pid and rc < threshold_pid and rr < threshold_pid))) then Straight
+                | (ll < threshold_pid and lc < threshold_pid and cc < threshold_pid and rc < threshold_pid and rr < threshold_pid) then Right_back
+                | (rr < threshold_pid and cc > threshold_pid and lc > threshold_pid and ll > threshold_pid) then Left_turn
+                | (ll < threshold_pid and cc > threshold_pid and rc > threshold_pid and rr > threshold_pid) then Right_turn
+
+            (*The bot was adjusting to the left but lost all sensor values*)
+            state Right_back
+            do 
+                going_straight = false;
+                dir = 4;
+                sL = 100;
+                sR = 0;
+            unless (rr < threshold_pid and rc < threshold_pid and ((ll > threshold_pid and lc < threshold_pid and cc < threshold_pid) or (ll > threshold_pid and lc > threshold_pid and cc < threshold_pid) or (ll < threshold_pid and lc > threshold_pid and cc > threshold_pid))) then Right_offset
+
+            (*The bot is slightly to the left of the white line*)
+            state Left_offset
+            do 
+                going_straight = false;
+                dir = 1;
+                sL = if (base - control < 0) then 0 else (if (base - control < 100) then (base - control) else 100);
+                sR = if (base + control > 100) then 100 else (if (base + control > 0) then (base + control) else 0);
+            unless (rr < threshold_pid and rc < threshold_pid and ((ll > threshold_pid and lc < threshold_pid and cc < threshold_pid) or (ll > threshold_pid and lc > threshold_pid and cc < threshold_pid) or (ll < threshold_pid and lc > threshold_pid and cc > threshold_pid))) then Right_offset
+                | (cc > threshold_pid and ((ll > threshold_pid and lc > threshold_pid and rc > threshold_pid and rr > threshold_pid) or (ll > threshold_pid and lc < threshold_pid and rc < threshold_pid and rr > threshold_pid) or (ll < threshold_pid and lc < threshold_pid and rc < threshold_pid and rr < threshold_pid))) then Straight
+                | (ll < threshold_pid and lc < threshold_pid and cc < threshold_pid and rc < threshold_pid and rr < threshold_pid) then Left_back
+                | (rr < threshold_pid and cc > threshold_pid and lc > threshold_pid and ll > threshold_pid) then Left_turn
+                | (ll < threshold_pid and cc > threshold_pid and rc > threshold_pid and rr > threshold_pid) then Right_turn
+
+            (*The bot was adjusting to the right but lost all sensor values*)
+            state Left_back
+            do 
+                going_straight = false;
+                dir = 4;
+                sL = 0;
+                sR = 100;
+            unless (ll < threshold_pid and lc < threshold_pid and ((rr > threshold_pid and rc < threshold_pid and cc < threshold_pid) or (rr > threshold_pid and rc > threshold_pid and cc < threshold_pid) or (rr < threshold_pid and rc > threshold_pid and cc > threshold_pid))) then Left_offset
+            
+            (*The bot is about to take a right turn*)
+            state Right_turn
+            do 
+                going_straight = false;
+                dir = 3;
+                sL = 100;
+                sR = 0;
+            unless (rr < threshold_pid and cc > threshold_pid and lc > threshold_pid and ll > threshold_pid) then Left_turn
+                | (rr < threshold_pid and rc < threshold_pid and ((ll > threshold_pid and lc < threshold_pid and cc < threshold_pid) or (ll > threshold_pid and lc > threshold_pid and cc < threshold_pid) or (ll < threshold_pid and lc > threshold_pid and cc > threshold_pid))) then Right_offset
+                | (ll < threshold_pid and lc < threshold_pid and ((rr > threshold_pid and rc < threshold_pid and cc < threshold_pid) or (rr > threshold_pid and rc > threshold_pid and cc < threshold_pid) or (rr < threshold_pid and rc > threshold_pid and cc > threshold_pid))) then Left_offset
+
+            (*The bot is about to take a left turn*)
+            state Left_turn
+            do 
+                going_straight = false;
+                dir = 2;
+                sL = 0;
+                sR = 100;
+            unless (ll < threshold_pid and cc > threshold_pid and rc > threshold_pid and rr > threshold_pid) then Right_turn
+                | (rr < threshold_pid and rc < threshold_pid and ((ll > threshold_pid and lc < threshold_pid and cc < threshold_pid) or (ll > threshold_pid and lc > threshold_pid and cc < threshold_pid) or (ll < threshold_pid and lc > threshold_pid and cc > threshold_pid))) then Right_offset
+                | (ll < threshold_pid and lc < threshold_pid and ((rr > threshold_pid and rc < threshold_pid and cc < threshold_pid) or (rr > threshold_pid and rc > threshold_pid and cc < threshold_pid) or (rr < threshold_pid and rc > threshold_pid and cc > threshold_pid))) then Left_offset
+
+        end
+    unless last going_straight and irl > threshold_ir and irc > threshold_ir and irr > threshold_ir
+      and ll < threshold_pid and lc < threshold_pid and cc < threshold_pid and rc < threshold_pid and rr < threshold_pid then Start
+    | irc < threshold_ir then Obstacle_follow
+end
+tel

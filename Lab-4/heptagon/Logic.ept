@@ -1,0 +1,45 @@
+node logic(proxc, proxl : bool) returns (left_speed, right_speed: int)
+var time_step : int;
+    last dist : int = 1;
+    last forwardrl1 : bool = false;
+    last forwardrl2 : bool = false;
+    last start : bool = false;
+    last left : bool = false;
+let
+automaton
+	state Start
+	  do
+	  	time_step = 0;
+	  	left_speed = 40;
+	  	right_speed = 40;
+	  	start = true; 
+	  until proxc then Right_turn
+        state Right_turn
+          do
+      		forwardrl1 = not(last start and last left);
+          	left_speed = 43;
+		right_speed = -43;
+		time_step = 0 -> pre(time_step) + 1;
+	  until time_step >= 13 and forwardrl1 then Forward
+	       |time_step >= 13 and last forwardrl2 then Start
+	 state Forward
+	   do
+	   	time_step = 0;
+	   	forwardrl1 = not(last start and last left);
+	   	left_speed = 40;
+	   	right_speed = 40;
+	   	dist = if forwardrl1 then last dist + 3
+	   	          else if forwardrl2 then last dist-1
+	   	          	else last dist; 
+	   until not(proxc or proxl) then Left_turn
+	   	| dist<=0 and last forwardrl2 then Right_turn
+	 state Left_turn
+	   do
+	   	left = true;
+	   	forwardrl2 = not last forwardrl1; 
+	   	left_speed = -38;
+		right_speed = 36;
+		time_step = 0 -> pre(time_step) + 1;
+	  until time_step >= 4 then Forward	  
+end
+tel

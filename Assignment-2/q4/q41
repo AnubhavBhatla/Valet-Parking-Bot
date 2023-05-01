@@ -1,0 +1,5 @@
+-> Fold has been given the operator 'or' and an accumulator value of false
+-> So, it returns:
+		y = x[0] or x[1] or x[2] or x[3] or x[4] or acc
+where acc = false
+-> y is true if atleast one entry in the array x is true, otherwise it is false

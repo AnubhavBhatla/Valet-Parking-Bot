@@ -1,0 +1,5 @@
+State1, State2, State4, State1_1/State1_2, State1_1/State2_2, State2_1/State1_2, State2_1/State2_2
+
+We start with State1. Now we have two transitions possible: if i1 then State3, if i2 then State2. Say we get i2 = true. We now move to State2. Now only one transition is possible and we move to State4. Again, we have only one transition possible, back to State1. Now say we get i1 = true and move to State3. Here we have two concurrent automatons, starting in State1_1/State1_2. State3_1 in the first automaton and State3_2 in the second automaton do not have any transitions entering the state and are thus unreachable. So, we are left with only 3 other possible modes: State1_1/State2_2, State2_1/State1_2, State2_1/State2_2
+
+So, we have a total of 7 distinct modes possible.

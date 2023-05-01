@@ -1,0 +1,63 @@
+
+(*PID logic*)
+node pid(a,b,c,d,e:int) returns(out:int)
+var last kp:int = 10;
+    last ki:int = 1;
+    last kd:int = 1;
+    derivative,integral,error:int; 
+let
+    error = a + b - d - e;
+    integral = error -> pre(integral) + error;
+    derivative = error -> error - pre(error);
+    out = kp*error/400 + ki*integral/100000 + kd*derivative/100;
+    kp = 10; ki = 1; kd = 1;
+tel
+
+node valet_parking(ll,lc,cc,rc,rr,irl,irc,irr: int) returns(left_speed,right_speed,dir: int)
+var 
+    last pid_out:int;
+let
+automaton
+    (*The Stop state*)
+    state Stop
+        do 
+            dir = 0;
+            left_speed = 0;
+            right_speed = 0;
+        until (*irc*20>300 then Obstacle_follow*) cc>900 then Line_follow
+    (*Obstacle Follow algorithm*)
+    (*state Obstacle_follow
+        do
+        (*Assuming that the fist time the bot detects a black line after entering this state is only possible when the bot has bipassed the obstruction*) 
+        (*Dummy variables to use the PID*)
+        pid_out = pid(irc,irr,0,0);
+        left_speed = if (pid_out < 50 and pid_out > -50) then (50 + pid_out) 
+                    else if pid_out > 50 then 100
+                            else 0;
+        right_speed = if (pid_out < 50 and pid_out > -50) then (50 - pid_out) 
+                    else if pid_out > 50 then 0
+                            else 100;
+        dir = 1;
+    until not ((ll<400) and (lc<400) and (cc<400) and (rc<400) and (rr<400)) then Line_follow*)
+    (*Line follower state machine*)
+    state Line_follow
+        do  
+        pid_out = pid(ll,lc,cc,rc,rr);
+        left_speed = if (pid_out < 50 and pid_out > -50) then (50 - pid_out) 
+                    else if pid_out > 50 then 0
+                            else 100;
+        right_speed = if (pid_out < 50 and pid_out > -50) then (50 + pid_out) 
+                    else if pid_out > 50 then 100
+                            else 0;
+        dir = 1;
+    unless (ll<500) and (lc<500) and (cc<500) and (rc<500) and (rr<500) then Back
+    (*unless not ((irc<300) and (irl<300) and (irr<300)) then Obstacle_follow*)
+    (*Back adjust and then stop state*)
+    state Back
+        do 
+            dir = 5;
+            left_speed = -98;  
+            right_speed = -98;
+    until cc > 900 then Line_follow
+end
+tel   

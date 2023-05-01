@@ -1,0 +1,6 @@
+node diff3() returns (y:int)
+var z:int;
+let
+   z = 1 -> (pre(z)*3);
+   y = 1 -> (pre(y)+z);
+tel

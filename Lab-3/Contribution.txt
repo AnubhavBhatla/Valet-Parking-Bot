@@ -1,0 +1,4 @@
+Anubhav Bhatla  (200070008): PID algorithm, debugging, fine tuning obstacle following algorithm, updating documentation
+Shashank Balaji (200070043): Integration testing, debugging, fine tuning obstacle following algorithm, updating documentation, video making
+Mudit Goyal     (200070045): Obstacle following algorithm, debugging
+

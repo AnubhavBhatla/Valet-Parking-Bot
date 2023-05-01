@@ -1,0 +1,18 @@
+node f(x: bool; sumin: int) returns (sumout: int)
+let
+   sumout = if (x) then (sumin+1) else sumin;
+tel
+
+node mutex<<n:int>>(ack: bool^n) returns (ok: bool)
+var total: int;
+let
+   total = fold<<n>>f(ack, 0);
+   ok = if (total > 1) then false else true;
+tel
+
+node display(ack1, ack2, ack3, ack4, ack5: bool) returns (ok: bool)
+var ack: bool^5;
+let
+    ack = [ack1, ack2, ack3, ack4, ack5];
+    ok = mutex<<5>>(ack);
+tel

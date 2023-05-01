@@ -1,0 +1,35 @@
+node mxor(x, y: bool) returns (c: bool)
+let 
+    c = (x and not y) or ((not x) and y);
+tel
+
+node fa(x, y, cin: bool) returns (z, cout: bool)
+let 
+    z = mxor(mxor(cin, x), y); 
+    cout = if cin then (x or y) else (x and y); 
+tel
+
+node rippleadd<<n:int>>(a: bool^n; b: bool^n) returns (c: bool^n; over: bool)
+let
+    (c,over) = mapfold<<n>>fa(a, b, false);
+tel
+
+node counter() returns (c: bool^8)
+var a, b, d: bool^6; overflow: bool;
+let
+    a = [false -> pre c[0], false -> pre c[1], false -> pre c[2], false -> pre c[3], false -> pre c[4], false -> pre c[5]]; 
+    b = [true, false, false, false, false, false];
+    (d,overflow) = rippleadd<<6>>(a,b);
+    c = [d[0], d[1], d[2], d[3], d[4], d[5], false, false]
+tel
+
+node display() returns (c0, c1, c2, c3, c4, c5, c6, c7: bool)
+var a, b, c: bool^6; overflow: bool;
+let
+   a = [false -> pre c0, false -> pre c1, false -> pre c2, false -> pre c3, false -> pre c4, false -> pre c5];
+   b = [true, false, false, false, false, false];
+   (c,overflow) = rippleadd<<6>>(a,b);
+   c0 = c[0]; c1 = c[1]; c2 = c[2]; c3 = c[3]; c4 = c[4]; c5 = c[5]; 
+   c6 = false;
+   c7 = false;
+tel

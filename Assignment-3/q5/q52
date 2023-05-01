@@ -1,0 +1,4 @@
+-> Exactly one of the red, yellow, and green lights should be true in a clock cycle for both the main and side roads
+-> Both maingreen and sidegreen should never be on in the same cycle
+-> a green light should be followed by a yellow light for both the main and side roads. similarly, a red light should be followed by a yellow light for both the main and side roads
+-> as long as carwait is true, sidegreen will eventually be true. similarly, as long as carwait is false, maingreen will eventually be true

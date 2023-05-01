@@ -1,0 +1,121 @@
+
+(*PID logic*)
+node pid(a,b,c,d,e:int) returns(out:int)
+var last kp:int = 10;
+    last ki:int = 1;
+    last kd:int = 1;
+    derivative,integral,error:int; 
+let
+    error = a + b - d - e;
+    integral = error -> pre(integral) + error;
+    derivative = error -> error - pre(error);
+    out = kp*error/400 + ki*integral/100000 + kd*derivative/100;
+    kp = 10; ki = 1; kd = 1;
+tel
+
+node valet_parking(ll,lc,cc,rc,rr: int; proxr,proxc,irbr,irbl: bool) returns(left_speed,right_speed: int)
+var 
+    last count:int = 0;
+    last initialize:bool = false;
+    last back : int = 0;
+    last pid_out:int;
+let
+automaton
+     
+     (*Initial State - bot is at rest*)
+     state Stop
+        do 
+            left_speed = 0;
+            right_speed = 0;
+        until cc>900 then Line_follow
+	      |proxc then Obstacle_follow
+	      
+     (*State for line following*)
+     state Line_follow
+        do  
+        pid_out = pid(ll,lc,cc,rc,rr);
+        left_speed = if (pid_out < 50 and pid_out > -50) then (50 - pid_out) 
+                    else if pid_out > 50 then 0
+                            else 100;
+        right_speed = if (pid_out < 50 and pid_out > -50) then (50 + pid_out) 
+                    else if pid_out > 50 then 100
+                            else 0;
+    until proxc then Obstacle_follow
+    unless ((ll<500) and (lc<500) and (cc<500) and (rc<500) and (rr<500)) then Back
+    	   | (ll > 900)and (rr > 900) and (cc < 500) then Line_follow_b
+    
+    (*State for obstacle avoidance*)
+    state Obstacle_follow
+        do
+	automaton
+	 	state Left_turn
+	   	do
+	   		left_speed = -83;
+			right_speed = 83;
+		  until proxr then Forward	  
+               state Forward
+	   	do
+	   		left_speed = 80;
+	   		right_speed = 80;
+	   	until not(proxc or proxr) then Left_turn
+        	state Right_turn
+          	do
+          		left_speed = 83;
+			right_speed = -83;
+	  	until proxr then Forward
+	end
+    until cc > 900 then Line_follow
+    
+    (*State for back correction*)
+    state Back
+        do 
+            left_speed = -98;  
+            right_speed = -98;
+    until cc > 900 then Line_follow
+    
+    (*State for back correction (black line following)*)
+    state Back_b
+        do 
+            left_speed = -98;  
+            right_speed = -98;
+    until cc < 500 then Line_follow_b
+    
+    (*State for line following (black line following)*)
+    state Line_follow_b
+        do
+        pid_out = pid(1000-ll,1000-lc,1000-cc,1000-rc,1000-rr);
+        left_speed = if (pid_out < 50 and pid_out > -50) then (50 - pid_out) 
+                    else if pid_out > 50 then 0
+                            else 100;
+        right_speed = if (pid_out < 50 and pid_out > -50) then (50 + pid_out) 
+                    else if pid_out > 50 then 100
+                            else 0;
+	    initialize = if ((last initialize) or (irbr)) then true else false;
+            count = if (initialize and irbr) then (last count + 1) else 0;
+     unless ((not irbr) and (last count>100)) then Parking
+           | (ll>900) and (lc>900) and (cc>900) and (rc>900) and (rr>900) then Back_b    
+
+     (*State for parking*)
+     state Parking
+        do
+            left_speed = -99;
+            right_speed = -45;
+        until (irbl) then Reverse
+      
+      (*State for reversing into the parking spot*)
+      state Reverse
+        do 
+            left_speed = -50;
+            right_speed = -50;
+            back = last back + 1;
+        until (back > 10) then Stop_final
+        
+      (*State for final stop*)
+      state Stop_final
+        do
+            left_speed = 0;
+            right_speed = 0;
+    	   
+   
+end
+tel   

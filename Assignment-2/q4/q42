@@ -1,0 +1,1 @@
+-> If we change the accumulator value to true, since 'or' operator returns true if atleast one operand is true, y will always be true irrespective of the values in the array x

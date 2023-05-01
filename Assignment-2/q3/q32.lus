@@ -1,0 +1,6 @@
+node gen(req:bool) returns (ack:bool)
+var count:int;
+let
+   count = (if (req) then 1 else 0) -> (if (req) then (pre(count) + 1) else 0);
+   ack = false -> (if (count < 3) then false else true);
+tel
